@@ -13,7 +13,7 @@ class BufferManager:
     """
 
     # Set default encoding for reading data
-    data_decoding = 'utf-8'
+    data_decoding = 'windows-1252'
 
     # Initialize the class with empty buffers
     def __init__(self):

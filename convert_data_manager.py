@@ -1,10 +1,16 @@
+# Import the pandas library and assign it the alias pd
 import pandas as pd
-import markdown
+import re
+from valid_mime_type import is_valid_mime_type
 
 class DataManager:
+    """
+    The DataManager class is used for managing and manipulating data loaded from a file.
+    """
+
     # Default encoding for data loading and export
     data_encoding = 'utf-8'
-    
+
     def __init__(self, input_file: str) -> None:
         """
         Initializes the DataManager class with the input file path.
@@ -14,17 +20,18 @@ class DataManager:
         """
         self.input_file = input_file
         # Allowed file extensions for loading
-        self.allowed_extensions = ['csv', 'json', 'xml', 'xlsx', 'html', 'md', 'tex']
-        
-    def allowed_file(self):
+        # self.allowed_extensions = ['csv', 'json', 'xml', 'xlsx', 'html']
+
+    def extract_suffix(self) -> str:
         """
-        Checks if the input file has a supported extension.
+        Extracts the file extension from the given file name.
 
         Returns:
-            bool: True if the extension is allowed, False otherwise.
+            str: The extracted file extension.
         """
-        # Check if the file has an extension and if it's in the allowed list
-        return '.' in self.input_file and self.input_file.rsplit('.', 1)[1].lower() in self.allowed_extensions
+        pattern = r'(\.[a-z]+)$'
+        found_suffix = re.findall(pattern, self.input_file)[0]  
+        return found_suffix
         
     def load_data(self):
         """
@@ -33,33 +40,47 @@ class DataManager:
         Returns:
             pd.DataFrame or None: The loaded data as a DataFrame if successful, None otherwise.
         """
-        df_result = None  # Initialize result variable
-        
         try:
-            # Try loading based on file extension
-            if self.input_file.endswith('.csv') and self.allowed_file():
-                df_result = pd.read_csv(self.input_file)
-            elif self.input_file.endswith('.json') and self.allowed_file():
-                df_result = pd.read_json(self.input_file, encoding=self.data_encoding).round(2)
-            elif self.input_file.endswith('.xml') and self.allowed_file():
-                df_result = pd.read_xml(self.input_file, encoding=self.data_encoding)
-            elif self.input_file.endswith('.xlsx') and self.allowed_file():
-                df_result = pd.read_excel(self.input_file)
-            elif self.input_file.endswith('.html') and self.allowed_file():
-                list_df_result = pd.read_html(self.input_file, encoding=self.data_encoding)
-                df_result = list_df_result[0]
-            else:
-                # Raises a ValueError if the output format is not supported
-                raise ValueError("Load Data - Unsupported file type.")
+            # Extracts the file extension using the extract_suffix() method
+            suffix = self.extract_suffix()
+
+            # Checks the validity of the file's MIME type using the is_valid_mime_type() function
+            if is_valid_mime_type(suffix, self.input_file):
+                # If the MIME type is valid, uses a match construct based on the file extension
+                match suffix:
+                    # If the extension is '.csv', reads the data from the file as CSV using the read_csv() method
+                    case '.csv':
+                        return pd.read_csv(self.input_file)
+                    # If the extension is '.json', reads the data from the file as JSON using the read_json() method
+                    case '.json':
+                        return pd.read_json(self.input_file).round(2)
+                    # If the extension is '.xml', reads the data from the file as XML using the read_xml() method
+                    case '.xml':
+                        return pd.read_xml(self.input_file)
+                    # If the extension is '.xlsx', reads the data from the file as Excel using the read_excel() method
+                    case '.xlsx':
+                        return pd.read_excel(self.input_file)
+                    # If the extension is '.html', reads the data from the file as HTML using the read_html() method
+                    case '.html':
+                        list_df_result = pd.read_html(self.input_file)
+                        return list_df_result[0]
+                    # If the extension does not match any supported formats, raises an exception
+                    case _:
+                        raise Exception("Load Data: Unsupported file type.")
             
-            return df_result
-        
+            else:
+                # If the file's MIME type is not valid, raises an exception
+                raise Exception("Invalid MIME type.")
+            
         # Handle specific errors raised during loading
         except pd.errors.EmptyDataError:
             print("Error: An empty file.")
         except (FileNotFoundError, pd.errors.ParserError) as e:
             print(f"Error: {e}")
-
+        # Catches exceptions in case of problems with loading data from the file
+        except Exception as e:
+            # Prints the error message
+            print(f"Error: {e}")
 class Converter:
     def __init__(self, df_load_data: pd.DataFrame, output_format: str, bytes_buffer, xlsx_buffer, string_buffer) -> None:
         """
@@ -83,36 +104,43 @@ class Converter:
         Converts the loaded data to the specified format and stores it in the appropriate buffer.
         """
         try:
-            # Checking if the loaded data is a DataFrame
             if isinstance(self.df_load_data, pd.DataFrame):
-                # Convert data based on output format
-                if self.output_format == 'csv':
-                    self.df_load_data.to_csv(self.string_buffer, index=False)
-                elif self.output_format == 'json':
-                    self.df_load_data.to_json(self.string_buffer, orient='records', indent=4, index=False)
-                elif self.output_format == 'xml':
-                    self.df_load_data.columns = self.df_load_data.columns.str.replace(' ', '_')
-                    self.df_load_data.to_xml(self.bytes_buffer, index=False)
-                elif self.output_format == 'xlsx':
-                    self.df_load_data.to_excel(self.xlsx_buffer, index=False)
-                elif self.output_format == 'html':
-                    # self.df_load_data.columns = self.df_load_data.columns.str.replace(' ', '_')
-                    self.df_load_data.to_html(self.string_buffer, index=False)
-                elif self.output_format == 'md':
-                    self.df_load_data.to_markdown(self.string_buffer, index=False)  # tablefmt="grid"
-                elif self.output_format == 'tex':
-                    self.df_load_data.to_latex(self.string_buffer, index=False)
-                
-                # Handle unsupported output formats
-                elif self.output_format not in ['csv', 'json', 'xml', 'xlsx', 'html', 'md', 'tex']:
-                    raise ValueError(f"Invalid output format: {self.output_format}")
-            
-            # Handle non-DataFrame data
+                # Check if the loaded data is a Pandas DataFrame
+                match self.output_format:
+                    # Using the match construct to handle different output formats
+                    case 'csv':
+                        # If the output format is CSV, write the DataFrame to a CSV file
+                        self.df_load_data.to_csv(self.string_buffer, index=False)
+                    case 'json':
+                        # If the output format is JSON, write the DataFrame to a JSON file
+                        self.df_load_data.to_json(self.string_buffer, orient='records', indent=4, index=False)
+                    case 'xml':
+                        # If the output format is XML, convert DataFrame to XML and write to buffer
+                        self.df_load_data.columns = self.df_load_data.columns.str.replace(' ', '_')
+                        self.df_load_data.to_xml(self.bytes_buffer, index=False)
+                    case 'xlsx':
+                        # If the output format is XLSX, write the DataFrame to an Excel file
+                        self.df_load_data.to_excel(self.xlsx_buffer, index=False)
+                    case 'html':
+                        # If the output format is HTML, write the DataFrame to an HTML file
+                        # self.df_load_data.columns = self.df_load_data.columns.str.replace(' ', '_')
+                        self.df_load_data.to_html(self.string_buffer, index=False)
+                    case 'md':
+                        # If the output format is Markdown, write the DataFrame to a Markdown file
+                        self.df_load_data.to_markdown(self.string_buffer, index=False)
+                    case 'tex':
+                        # If the output format is TeX, write the DataFrame to a LaTeX file
+                        self.df_load_data.to_latex(self.string_buffer, index=False)
+                    case _:
+                        # If the output format is not recognized, raise a ValueError
+                        raise ValueError(f"Invalid output format: {self.output_format}")
             else:
-                raise TypeError("A DataFrame is expected.")
-        
+                # Throws an exception if the data loaded is not a DataFrame
+                raise TypeError("A DataFrame is expected, check the validity of the input data.")  
+
         except TypeError as e:
-            print(f"Chyba: {e}")
+            # If a TypeError occurs, print an error message with details
+            print(f"Error: {e}")
 
 class ExportData:
     def __init__(self, df_load_data: pd.DataFrame, export_output_format: str, output_file_path) -> None:
@@ -133,35 +161,39 @@ class ExportData:
         Exports the data to a file in the specified format.
         """
         try:
-            # Check if the data is a DataFrame
             if isinstance(self.df_load_data, pd.DataFrame):
-                try:
-                    # Export data based on output format
-                    if self.export_output_format == 'csv':
+                # Checking the type of input data, whether it is a DataFrame
+                match self.export_output_format:
+                    # For supported output formats cases
+                    case 'csv':
+                        # Export to CSV format
                         self.df_load_data.to_csv(self.output_file_path, index=False)
-                    elif self.export_output_format == 'json':
+                    case 'json':
+                        # Export to JSON format
                         self.df_load_data.to_json(self.output_file_path, orient='records', indent=2, index=False)
-                    elif self.export_output_format == 'xml':
+                    case 'xml':
+                        # Export to XML format
                         self.df_load_data.to_xml(self.output_file_path, index=False)
-                    elif self.export_output_format == 'xlsx':
+                    case 'xlsx':
+                        # Export to Excel format
                         self.df_load_data.to_excel(self.output_file_path, index=False)
-                    elif self.export_output_format == 'html':
+                    case 'html':
+                        # Export to HTML format
                         self.df_load_data.to_html(self.output_file_path, index=False)
-                    elif self.export_output_format == 'md':
+                    case 'md':
+                        # Export to Markdown format
                         self.df_load_data.to_markdown(self.output_file_path, index=False)
-                    elif self.export_output_format == 'tex':
+                    case 'tex':
+                        # Export to LaTeX format
                         self.df_load_data.to_latex(self.output_file_path, index=False)
-                
-                # Handle unsupported output formats
-                except ValueError as ve:
-                        # If a ValueError occurs during export, it prints an error message
-                    print(ve)
-            
-            # Handle non-DataFrame data
+                    case _:
+                        # Executed if the specified format does not match the supported formats
+                        raise ValueError(f"Invalid output format: {self.export_output_format}")
+
             else:
-                # If the data loaded is not a DataFrame, it throws a ValueError
-                raise ValueError("Export - Incorrect input data format.")
-        
+                # # Throws an exception if the data loaded is not a DataFrame
+                raise ValueError("A DataFrame is expected, check the validity of the input data.")  # Vyvolá výnimku, ak načítané dáta nie sú DataFrame            
+
         except ValueError as ve:
                 # If a ValueError occurs during data processing, it prints an error message
             print(ve)

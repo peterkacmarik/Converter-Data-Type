@@ -3,24 +3,13 @@ from convert_data_manager import DataManager, Converter, ExportData
 # Use pandasgui for interactive data exploration (optional, comment out if not used)
 from pandasgui import show
 from io_buffer import BufferManager
-from features import AdvancedFeatures
-from tabulate import tabulate
+import re
+
 
 # Execute code only when script is run directly, not imported as a module
 if __name__ == '__main__':
-    
-    # Define input file path, URL, and desired output format
-    input_file = 'dataset/iris.csv'
-    input_url = 'https://www.worldometers.info/geography/alphabetical-list-of-countries/'
-    show_output_format = 'json'
-    
-    # Initialize buffer managers for different data types
-    bytes_buffer_manager = BufferManager()
-    xlsx_buffer_manager = BufferManager()
-    string_buffer_manager = BufferManager()
-
     # Function to load data from a file
-    def manager_input_file(input_file: str):
+    def load_input_file(input_file: str):
         """
         Initializes the data loading class based on file type (csv, json, xml, xlsx, html).
         Args:
@@ -66,46 +55,67 @@ if __name__ == '__main__':
         Returns:
             str or pd.DataFrame: The converted data in the specified format.
         """
-        list_format = {'csv', 'json', 'html', 'md', 'tex'}
+        list_allowed_extensions = ['csv', 'json', 'html', 'md', 'tex']
 
         if show_output_format == 'xml':
             converted_data = bytes_buffer_manager.read_bytes_buffer()
         elif show_output_format == 'xlsx':
             converted_data = xlsx_buffer_manager.read_buffer_xlsx()
-        elif show_output_format in list_format:
+        elif show_output_format in list_allowed_extensions:
             converted_data = string_buffer_manager.read_string_buffer()
         return converted_data
 
     # Function to export converted data to a file (commented out for now)
-    def export_file():
+    def export_file(output_file_path, export_output_format):
         """
-        Exports the converted data to a specified file.
-
-        This function is currently commented out, but can be uncommented to 
-        enable data export functionality.
+        Exports the data to a file in the specified format.
 
         Args:
-            None
+            output_file_path (str): The path to the output file.
+            export_output_format (str): The desired output format.
+
+        Raises:
+            ValueError: If the file extension does not match the specified export format.
         """
-        # Define output file path and format
-        output_file_path = 'converter_2.0/dataset/mock_data.md'
-        export_output_format = 'md'
-        
-        # Create a DataFrame from the data loaded from the input file.
-        df_load_data = create_dataframe(file_data_manager=manager_input_file(input_file))
+        # Regular expression pattern to extract the file extension
+        pattern = r'([a-z]+)$'
+        suffix = re.findall(pattern, output_file_path)[0]
+    
+        # Check if the found file extension matches the specified export format
+        if suffix == export_output_format:
+            # Create an instance of ExportData to handle the export process
+            export_data_manager = ExportData(df_load_data, export_output_format, output_file_path)
+            
+            # Perform the data export
+            export_data_manager.export_data()
+        else:
+            # Raise a ValueError if the found file extension does not match the specified export format
+            raise ValueError("Incorrect export format.")
 
-         # Create an ExportData instance to handle the export
-        export_data_manager = ExportData(df_load_data, export_output_format, output_file_path)
-        
-        # Perform the data export
-        export_data_manager.export_data()
 
-    # Main execution flow
-    file_data_manager = manager_input_file(input_file)
+    # --- Main execution flow --- #
+    
+    # Initialize buffer managers for different data types
+    bytes_buffer_manager = BufferManager()
+    xlsx_buffer_manager = BufferManager()
+    string_buffer_manager = BufferManager()
+    
+    # Define input file path and desired output format
+    input_file = 'converter_2.0/dataset/mock_data.xml'
+    show_output_format = 'csv'  # Options for XML: 'latin-1', 'ISO-8859-2', 'windows-1252', 'windows-1250'
+    
+    # --- View output data functionality --- #
+    
+    file_data_manager = load_input_file(input_file)
     df_load_data = create_dataframe(file_data_manager)
     convert_data_to_buffer(df_load_data)
     result = show_convert_data()
+    # print(result)
     # gui = show(df_load_data)
+
+    # --- Export functionality commented out for now --- #
     
-    # Export functionality commented out for now
-    # export_file()
+    # Define output file path and format
+    # output_file_path = 'converter_2.0/dataset/test_export.json'
+    # export_output_format = 'json'
+    # export_file(output_file_path, export_output_format)
