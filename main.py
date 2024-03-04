@@ -1,8 +1,13 @@
-# Import necessary libraries
+# Import classes and modules for data conversion management
 from convert_data_manager import DataManager, Converter, ExportData
-# Use pandasgui for interactive data exploration (optional, comment out if not used)
-from pandasgui import show
+
+# Import the show function from the pandasgui module to display the interactive GUI for the pandas DataFrame
+# from pandasgui import show
+
+# Import the BufferManager class from the io_buffer file to manage input and output
 from io_buffer import BufferManager
+
+# Import the re module for working with regular expressions
 import re
 
 
@@ -56,14 +61,13 @@ if __name__ == '__main__':
             str or pd.DataFrame: The converted data in the specified format.
         """
         list_allowed_extensions = ['csv', 'json', 'html', 'md', 'tex']
-
+        
         if show_output_format == 'xml':
-            converted_data = bytes_buffer_manager.read_bytes_buffer()
+            return bytes_buffer_manager.read_bytes_buffer()
         elif show_output_format == 'xlsx':
-            converted_data = xlsx_buffer_manager.read_buffer_xlsx()
+            return xlsx_buffer_manager.read_buffer_xlsx()
         elif show_output_format in list_allowed_extensions:
-            converted_data = string_buffer_manager.read_string_buffer()
-        return converted_data
+            return string_buffer_manager.read_string_buffer()
 
     # Function to export converted data to a file (commented out for now)
     def export_file(output_file_path, export_output_format):
@@ -79,7 +83,7 @@ if __name__ == '__main__':
         """
         # Regular expression pattern to extract the file extension
         pattern = r'([a-z]+)$'
-        suffix = re.findall(pattern, output_file_path)[0]
+        suffix = re.search(pattern, output_file_path)[0]
     
         # Check if the found file extension matches the specified export format
         if suffix == export_output_format:
@@ -90,7 +94,7 @@ if __name__ == '__main__':
             export_data_manager.export_data()
         else:
             # Raise a ValueError if the found file extension does not match the specified export format
-            raise ValueError("Incorrect export format.")
+            raise ValueError(f"Incorrect export format. Expected {export_output_format}, got {suffix}.")
 
 
     # --- Main execution flow --- #
@@ -101,8 +105,8 @@ if __name__ == '__main__':
     string_buffer_manager = BufferManager()
     
     # Define input file path and desired output format
-    input_file = 'converter_2.0/dataset/mock_data.xml'
-    show_output_format = 'csv'  # Options for XML: 'latin-1', 'ISO-8859-2', 'windows-1252', 'windows-1250'
+    input_file = 'dataset/mock_data.html'
+    show_output_format = 'csv'
     
     # --- View output data functionality --- #
     
@@ -110,12 +114,12 @@ if __name__ == '__main__':
     df_load_data = create_dataframe(file_data_manager)
     convert_data_to_buffer(df_load_data)
     result = show_convert_data()
-    # print(result)
+    print(result)
     # gui = show(df_load_data)
 
     # --- Export functionality commented out for now --- #
     
     # Define output file path and format
-    # output_file_path = 'converter_2.0/dataset/test_export.json'
-    # export_output_format = 'json'
+    # output_file_path = 'dataset/test_export_file.csv'
+    # export_output_format = 'csv'
     # export_file(output_file_path, export_output_format)
