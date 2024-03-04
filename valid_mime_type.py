@@ -1,4 +1,7 @@
+# Import the ValidateCsv class from the file mime_type_csv.py
 from mime_type_csv import ValidateCsv
+
+# Import the mimetypes module for handling MIME types
 import mimetypes
 
 
@@ -59,4 +62,5 @@ def is_valid_mime_type(suffix: str, input_file: str) -> bool:
         else:
             return False  # If the MIME type is not valid, return False
     else:
-        raise Exception("Invalid file suffix.")  # If the file suffix is not valid, raise an exception
+        # If the file suffix is not valid, raise an exception
+        raise ValueError("The file extension is not supported.")  
