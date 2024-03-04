@@ -1,13 +1,17 @@
-# Import the pandas library and assign it the alias pd
+# Import the re library, pandas library and assign it the alias pd
 import pandas as pd
+
+# Import the re module for working with regular expressions
 import re
+
+# Import function is_valid_mime_type from module valid_mime_type
 from valid_mime_type import is_valid_mime_type
+
 
 class DataManager:
     """
     The DataManager class is used for managing and manipulating data loaded from a file.
     """
-
     # Default encoding for data loading and export
     data_encoding = 'utf-8'
 
@@ -19,8 +23,6 @@ class DataManager:
             input_file (str): Path to the input file.
         """
         self.input_file = input_file
-        # Allowed file extensions for loading
-        # self.allowed_extensions = ['csv', 'json', 'xml', 'xlsx', 'html']
 
     def extract_suffix(self) -> str:
         """
@@ -30,7 +32,7 @@ class DataManager:
             str: The extracted file extension.
         """
         pattern = r'(\.[a-z]+)$'
-        found_suffix = re.findall(pattern, self.input_file)[0]  
+        found_suffix = re.search(pattern, self.input_file)[0]  
         return found_suffix
         
     def load_data(self):
@@ -66,21 +68,21 @@ class DataManager:
                         return list_df_result[0]
                     # If the extension does not match any supported formats, raises an exception
                     case _:
-                        raise Exception("Load Data: Unsupported file type.")
-            
+                        raise ValueError("Load Data: Unsupported file type.")
             else:
                 # If the file's MIME type is not valid, raises an exception
-                raise Exception("Invalid MIME type.")
+                raise ValueError("The file extension is not supported. Invalid MIME type.")
             
         # Handle specific errors raised during loading
         except pd.errors.EmptyDataError:
-            print("Error: An empty file.")
+            print("Load Error: An empty file.")
         except (FileNotFoundError, pd.errors.ParserError) as e:
-            print(f"Error: {e}")
+            print(f"Load Error: {e}")
         # Catches exceptions in case of problems with loading data from the file
-        except Exception as e:
+        except ValueError as ve:
             # Prints the error message
-            print(f"Error: {e}")
+            print(f"Load Error: {ve}")
+            
 class Converter:
     def __init__(self, df_load_data: pd.DataFrame, output_format: str, bytes_buffer, xlsx_buffer, string_buffer) -> None:
         """
@@ -136,11 +138,11 @@ class Converter:
                         raise ValueError(f"Invalid output format: {self.output_format}")
             else:
                 # Throws an exception if the data loaded is not a DataFrame
-                raise TypeError("A DataFrame is expected, check the validity of the input data.")  
+                raise ValueError("A DataFrame is expected, check the validity of the input data.")  
 
-        except TypeError as e:
-            # If a TypeError occurs, print an error message with details
-            print(f"Error: {e}")
+        except ValueError as ve:
+            # If a ValueError occurs during data processing, it prints an error message
+            print(f"Convert Error: {ve}")
 
 class ExportData:
     def __init__(self, df_load_data: pd.DataFrame, export_output_format: str, output_file_path) -> None:
@@ -189,11 +191,10 @@ class ExportData:
                     case _:
                         # Executed if the specified format does not match the supported formats
                         raise ValueError(f"Invalid output format: {self.export_output_format}")
-
             else:
-                # # Throws an exception if the data loaded is not a DataFrame
+                # Throws an exception if the data loaded is not a DataFrame
                 raise ValueError("A DataFrame is expected, check the validity of the input data.")  # Vyvolá výnimku, ak načítané dáta nie sú DataFrame            
 
         except ValueError as ve:
-                # If a ValueError occurs during data processing, it prints an error message
-            print(ve)
+            # If a ValueError occurs during data processing, it prints an error message
+            print(f"Export Error: {ve}")
